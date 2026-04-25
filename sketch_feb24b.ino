@@ -65,47 +65,33 @@ void handleButton() {
 }
 
 
-
-
-
-
+// --------------------------------------------------------------
 
 void readSensors() {
   soundValue = analogRead(SOUND_PIN);
   lightValue = analogRead(LIGHT_PIN);
+  // motionValue = digitalRead(PIR_PIN); // disabled
 
+  temperature = readTemperature();
+}
 
-void loop() {
+// --------------------------------------------------------------
 
-  // ================= BUTTON SWITCH =================
-  int currentButtonState = digitalRead(BUTTON_PIN);
-
-  if (currentButtonState == LOW && lastButtonState == HIGH) {
-    displayMode++;
-    if (displayMode >= TOTAL_MODES) {
-      displayMode = 0;
-    }
-  }
-
-  lastButtonState = currentButtonState;
-  // =================================================
-
-
-  // ================= READ SENSORS ==================
-  soundValue = analogRead(SOUND_PIN);
-  lightValue = analogRead(LIGHT_PIN);
-  motionValue = digitalRead(PIR_PIN);
-
+float readTemperature() {
   int tempRaw = analogRead(TEMP_PIN);
-  temperature = (tempRaw * 5.0 / 1023.0) * 100.0;
-  // =================================================
 
+  float resistance = (1023.0 / tempRaw - 1.0) * 10000.0;
+  float temperatureC = 1.0 / (log(resistance / 10000.0) / 3975.0 + 1 / 298.15) - 273.15;
 
-  // =========== RAPID LIGHT DETECTION ==============
-  int lightDifference = abs(lightValue - previousLightValue);
+  return temperatureC;
+}
 
-  if (lightDifference > LIGHT_CHANGE_THRESHOLD) {
+// --------------------------------------------------------------
 
+void detectRapidLight() {
+  int diff = abs(lightValue - previousLightValue);
+
+  if (diff > LIGHT_CHANGE_THRESHOLD) {
     if (rapidChangeStartTime == 0) {
       rapidChangeStartTime = millis();
     }
@@ -120,22 +106,30 @@ void loop() {
   }
 
   previousLightValue = lightValue;
-  // =================================================
+}
 
+// --------------------------------------------------------------
 
-  // ================= FOCUS LOGIC ===================
-  if (soundValue > SOUND_THRESHOLD) focusScore -= 2;
-  if (lightValue < LIGHT_LOW || lightValue > LIGHT_HIGH) focusScore -= 1;
-  if (motionValue == HIGH) focusScore -= 2;
-  if (temperature > TEMP_HIGH) focusScore -= 1;
-  if (rapidLightDetected) focusScore -= 2;
+void calculateFocus() {
+
+  focusScore = 100;
+
+  if (soundValue > SOUND_THRESHOLD) focusScore -= 25;
+
+  if (lightValue < LIGHT_LOW || lightValue > LIGHT_HIGH || rapidLightDetected)
+    focusScore -= 25;
+
+  // if (motionValue == HIGH) focusScore -= 25; // disabled
+
+  if (temperature > TEMP_HIGH) focusScore -= 25;
 
   if (focusScore < 0) focusScore = 0;
-  if (focusScore > 100) focusScore = 100;
-  // =================================================
+}
 
+// --------------------------------------------------------------
 
-  // ================= OLED DISPLAY ==================
+void displayOLED() {
+
   oled.clearBuffer();
   oled.setFont(u8g2_font_ncenB08_tr);
 
@@ -143,9 +137,9 @@ void loop() {
 
     case 0:
       oled.drawStr(0,15,"Light:");
-      if (rapidLightDetected) {
+      if (rapidLightDetected)
         oled.drawStr(0,35,"Rapid Change!");
-      } else {
+      else {
         oled.setCursor(0,35);
         oled.print(lightValue);
       }
@@ -153,10 +147,7 @@ void loop() {
 
     case 1:
       oled.drawStr(0,15,"Motion:");
-      if (motionValue == HIGH)
-        oled.drawStr(0,35,"Detected");
-      else
-        oled.drawStr(0,35,"Clear");
+      oled.drawStr(0,35,"Disabled");
       break;
 
     case 2:
@@ -180,7 +171,17 @@ void loop() {
   }
 
   oled.sendBuffer();
-  // =================================================
+}
+
+// ==============================================================
+
+void loop() {
+
+  handleButton();
+  readSensors();
+  detectRapidLight();
+  calculateFocus();
+  displayOLED();
 
   delay(200);
 }
