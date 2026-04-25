@@ -1,5 +1,8 @@
 #include <U8g2lib.h>
 #include <math.h>
+#include <WiFiS3.h>
+#include <ArduinoHttpClient.h>
+#include "arduino_secrets.h"
 
 // -------- OLED SETUP ------------------------------------------
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
@@ -7,9 +10,17 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 // -------- PIN CONFIGURATION -----------------------------------
 const int SOUND_PIN  = A0;
 const int LIGHT_PIN  = A1;
-// const int PIR_PIN = 2;   // PIR disabled for now
+// const int PIR_PIN = 2;  // PIR disabled
 const int TEMP_PIN   = A2;
 const int BUTTON_PIN = 3;
+
+// -------- WIFI CONFIG -----------------------------------------
+const char serverName[] = "api.pushingbox.com";
+const int serverPort = 80;
+const char devid[] = "v963896FDE673C9F";
+
+WiFiClient wifi;
+HttpClient client(wifi, serverName, serverPort);
 
 // -------- BUTTON VARIABLES ------------------------------------
 bool lastButtonState = HIGH;
@@ -19,7 +30,6 @@ const int TOTAL_MODES = 5;
 // -------- SENSOR VARIABLES ------------------------------------
 int soundValue = 0;
 int lightValue = 0;
-// int motionValue = 0; // disabled
 float temperature = 0.0;
 int focusScore = 100;
 
@@ -37,16 +47,56 @@ const int LIGHT_LOW = 200;
 const int LIGHT_HIGH = 800;
 const float TEMP_HIGH = 30.0;
 
-// ==============================================================
-
+// =============================================================
+// SETUP
+// =============================================================
 void setup() {
   oled.begin();
+  Serial.begin(9600);
+
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  // pinMode(PIR_PIN, INPUT); // disabled
+  // pinMode(PIR_PIN, INPUT);
+
+  connectWiFi();
 }
 
-// ================= FUNCTIONS ==================================
+// =============================================================
+// LOOP
+// =============================================================
+void loop() {
 
+  handleButton();
+  readSensors();
+  detectRapidLight();
+  calculateFocus();
+  displayOLED();
+  sendToServer();
+
+  delay(5000); // avoid spamming server
+}
+
+// =============================================================
+// FUNCTIONS
+// =============================================================
+
+// -------- WIFI -----------------------------------------------
+void connectWiFi() {
+  Serial.print("Connecting to WiFi: ");
+  Serial.println(SECRET_SSID);
+
+  int status = WiFi.begin(SECRET_SSID, SECRET_PASS);
+
+  while (status != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    status = WiFi.status();
+  }
+
+  Serial.println("\nConnected!");
+  Serial.println(WiFi.localIP());
+}
+
+// -------- BUTTON ---------------------------------------------
 void handleButton() {
   int currentButtonState = digitalRead(BUTTON_PIN);
 
@@ -58,29 +108,24 @@ void handleButton() {
   lastButtonState = currentButtonState;
 }
 
-// --------------------------------------------------------------
-
+// -------- SENSOR READ ----------------------------------------
 void readSensors() {
   soundValue = analogRead(SOUND_PIN);
   lightValue = analogRead(LIGHT_PIN);
-  // motionValue = digitalRead(PIR_PIN); // disabled
-
   temperature = readTemperature();
 }
 
-// --------------------------------------------------------------
-
+// -------- TEMPERATURE FIX (GROVE) -----------------------------
 float readTemperature() {
   int tempRaw = analogRead(TEMP_PIN);
 
   float resistance = (1023.0 / tempRaw - 1.0) * 10000.0;
-  float temperatureC = 1.0 / (log(resistance / 10000.0) / 3975.0 + 1 / 298.15) - 273.15;
+  float tempC = 1.0 / (log(resistance / 10000.0) / 3975.0 + 1 / 298.15) - 273.15;
 
-  return temperatureC;
+  return tempC;
 }
 
-// --------------------------------------------------------------
-
+// -------- LIGHT CHANGE ----------------------------------------
 void detectRapidLight() {
   int diff = abs(lightValue - previousLightValue);
 
@@ -101,8 +146,7 @@ void detectRapidLight() {
   previousLightValue = lightValue;
 }
 
-// --------------------------------------------------------------
-
+// -------- FOCUS SCORE -----------------------------------------
 void calculateFocus() {
 
   focusScore = 100;
@@ -112,15 +156,14 @@ void calculateFocus() {
   if (lightValue < LIGHT_LOW || lightValue > LIGHT_HIGH || rapidLightDetected)
     focusScore -= 25;
 
-  // if (motionValue == HIGH) focusScore -= 25; // disabled
+  // if (motionValue == HIGH) focusScore -= 25; // PIR disabled
 
   if (temperature > TEMP_HIGH) focusScore -= 25;
 
   if (focusScore < 0) focusScore = 0;
 }
 
-// --------------------------------------------------------------
-
+// -------- DISPLAY ---------------------------------------------
 void displayOLED() {
 
   oled.clearBuffer();
@@ -166,39 +209,25 @@ void displayOLED() {
   oled.sendBuffer();
 }
 
-// ==============================================================
+// -------- SEND DATA -------------------------------------------
+void sendToServer() {
 
-void loop() {
-
-  handleButton();
-  readSensors();
-  detectRapidLight();
-  calculateFocus();
-  displayOLED();
-
-  delay(200);
-}
-
-
-
-
-
-
-
-
-// -------- WIFI -----------------------------------------------
-void connectWiFi() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(SECRET_SSID);
-
-  int status = WiFi.begin(SECRET_SSID, SECRET_PASS);
-
-  while (status != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    status = WiFi.status();
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
   }
 
-  Serial.println("\nConnected!");
-  Serial.println(WiFi.localIP());
+  String path = "/pushingbox?devid=" + String(devid)
+              + "&temp=" + String(temperature)
+              + "&sound=" + String(soundValue)
+              + "&light=" + String(lightValue)
+              + "&focus=" + String(focusScore);
+
+  Serial.println("Sending data:");
+  Serial.println(path);
+
+  client.get(path);
+
+  int statusCode = client.responseStatusCode();
+  Serial.print("Status: ");
+  Serial.println(statusCode);
 }
