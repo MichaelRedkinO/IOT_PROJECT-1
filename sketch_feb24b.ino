@@ -8,7 +8,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 // -------- PIN CONFIGURATION -----------------------------------
 const int SOUND_PIN  = A0;
 const int LIGHT_PIN  = A1;
-const int PIR_PIN    = 2;
+// could not get the PIR sensor so we will just use the light const int PIR_PIN    = 2;
 const int TEMP_PIN   = A2;
 const int BUTTON_PIN = 3;
 // ---------------------------------------------------------------
