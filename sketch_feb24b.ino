@@ -46,10 +46,9 @@ const float TEMP_HIGH = 30.0;
 
 
 void setup() {
-
   oled.begin();
-  pinMode(PIR_PIN, INPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  // pinMode(PIR_PIN, INPUT); // disabled
 }
 
 
