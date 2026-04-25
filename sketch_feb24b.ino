@@ -17,7 +17,6 @@ const int BUTTON_PIN = 3;
 bool lastButtonState = HIGH;
 int displayMode = 0;
 const int TOTAL_MODES = 5;
-// ---------------------------------------------------------------
 
 
 // -------- SENSOR VARIABLES ------------------------------------
