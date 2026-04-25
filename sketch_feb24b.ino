@@ -4,7 +4,6 @@
 // -------- OLED SETUP ------------------------------------------
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
-
 // -------- PIN CONFIGURATION -----------------------------------
 const int SOUND_PIN  = A0;
 const int LIGHT_PIN  = A1;
@@ -12,12 +11,10 @@ const int LIGHT_PIN  = A1;
 const int TEMP_PIN   = A2;
 const int BUTTON_PIN = 3;
 
-
 // -------- BUTTON VARIABLES ------------------------------------
 bool lastButtonState = HIGH;
 int displayMode = 0;
 const int TOTAL_MODES = 5;
-
 
 // -------- SENSOR VARIABLES ------------------------------------
 int soundValue = 0;
@@ -25,7 +22,6 @@ int lightValue = 0;
 // int motionValue = 0; // disabled
 float temperature = 0.0;
 int focusScore = 100;
-
 
 // -------- LIGHT RAPID CHANGE ----------------------------------
 int previousLightValue = 0;
@@ -35,7 +31,6 @@ bool rapidLightDetected = false;
 const int LIGHT_CHANGE_THRESHOLD = 150;
 const unsigned long RAPID_WINDOW = 5000;
 
-
 // -------- THRESHOLDS ------------------------------------------
 const int SOUND_THRESHOLD = 600;
 const int LIGHT_LOW = 200;
@@ -43,7 +38,6 @@ const int LIGHT_HIGH = 800;
 const float TEMP_HIGH = 30.0;
 
 // ==============================================================
-
 
 void setup() {
   oled.begin();
@@ -63,7 +57,6 @@ void handleButton() {
 
   lastButtonState = currentButtonState;
 }
-
 
 // --------------------------------------------------------------
 
