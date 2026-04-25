@@ -22,10 +22,9 @@ const int TOTAL_MODES = 5;
 // -------- SENSOR VARIABLES ------------------------------------
 int soundValue = 0;
 int lightValue = 0;
-int motionValue = 0;
+// int motionValue = 0; // disabled
 float temperature = 0.0;
 int focusScore = 100;
-// ---------------------------------------------------------------
 
 
 // -------- LIGHT RAPID CHANGE ----------------------------------
