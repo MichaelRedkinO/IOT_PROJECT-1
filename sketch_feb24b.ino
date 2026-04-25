@@ -65,6 +65,16 @@ void handleButton() {
 }
 
 
+
+
+
+
+
+void readSensors() {
+  soundValue = analogRead(SOUND_PIN);
+  lightValue = analogRead(LIGHT_PIN);
+
+
 void loop() {
 
   // ================= BUTTON SWITCH =================
