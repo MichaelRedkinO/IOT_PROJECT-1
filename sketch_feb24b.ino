@@ -34,7 +34,6 @@ bool rapidLightDetected = false;
 
 const int LIGHT_CHANGE_THRESHOLD = 150;
 const unsigned long RAPID_WINDOW = 5000;
-// ---------------------------------------------------------------
 
 
 // -------- THRESHOLDS ------------------------------------------
