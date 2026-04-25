@@ -41,7 +41,8 @@ const int SOUND_THRESHOLD = 600;
 const int LIGHT_LOW = 200;
 const int LIGHT_HIGH = 800;
 const float TEMP_HIGH = 30.0;
-// ---------------------------------------------------------------
+
+// ==============================================================
 
 
 void setup() {
