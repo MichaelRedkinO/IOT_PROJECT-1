@@ -51,6 +51,19 @@ void setup() {
   // pinMode(PIR_PIN, INPUT); // disabled
 }
 
+// ================= FUNCTIONS ==================================
+
+void handleButton() {
+  int currentButtonState = digitalRead(BUTTON_PIN);
+
+  if (currentButtonState == LOW && lastButtonState == HIGH) {
+    displayMode++;
+    if (displayMode >= TOTAL_MODES) displayMode = 0;
+  }
+
+  lastButtonState = currentButtonState;
+}
+
 
 void loop() {
 
