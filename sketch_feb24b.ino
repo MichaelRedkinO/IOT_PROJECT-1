@@ -178,3 +178,27 @@ void loop() {
 
   delay(200);
 }
+
+
+
+
+
+
+
+
+// -------- WIFI -----------------------------------------------
+void connectWiFi() {
+  Serial.print("Connecting to WiFi: ");
+  Serial.println(SECRET_SSID);
+
+  int status = WiFi.begin(SECRET_SSID, SECRET_PASS);
+
+  while (status != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    status = WiFi.status();
+  }
+
+  Serial.println("\nConnected!");
+  Serial.println(WiFi.localIP());
+}
