@@ -72,6 +72,8 @@ void loop() {
   displayOLED();
   sendToServer();
 
+  sendToFirebase(); // Sending Dara to the Firebase , link : https://console.firebase.google.com/u/0/project/asec-iot/database/asec-iot-default-rtdb/data/~2F
+
   delay(5000); // avoid spamming server
 }
 
