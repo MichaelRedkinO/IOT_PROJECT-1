@@ -218,7 +218,7 @@ void sendToFirebase() {
     connectWiFi();
   }
 
-  String firebaseHost = "your-project-id-default-rtdb.firebaseio.com";
+  String firebaseHost = "https://console.firebase.google.com/u/0/project/asec-iot/database/asec-iot-default-rtdb/data/~2F";
 
   WiFiClient client;
 
