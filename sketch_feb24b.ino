@@ -5,22 +5,15 @@
 #include "arduino_secrets.h"
 
 // -------- OLED SETUP ------------------------------------------
+// i think this is correct for my screen, didnt change it
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
 // -------- PIN CONFIGURATION -----------------------------------
 const int SOUND_PIN  = A0;
 const int LIGHT_PIN  = A1;
-// const int PIR_PIN = 2;  // PIR disabled
+// const int PIR_PIN = 2;  // PIR disabled for now (sensor broken i think)
 const int TEMP_PIN   = A2;
 const int BUTTON_PIN = 3;
-
-// -------- WIFI CONFIG -----------------------------------------
-const char serverName[] = "api.pushingbox.com";
-const int serverPort = 80;
-const char devid[] = "v963896FDE673C9F";
-
-WiFiClient wifi;
-HttpClient client(wifi, serverName, serverPort);
 
 // -------- BUTTON VARIABLES ------------------------------------
 bool lastButtonState = HIGH;
@@ -55,9 +48,8 @@ void setup() {
   Serial.begin(9600);
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  // pinMode(PIR_PIN, INPUT);
 
-  connectWiFi();
+  connectWiFi(); // hope wifi connects fast lol
 }
 
 // =============================================================
@@ -70,18 +62,16 @@ void loop() {
   detectRapidLight();
   calculateFocus();
   displayOLED();
-  sendToServer();
 
-  sendToFirebase(); // Sending Dara to the Firebase , link : https://asec-iot-default-rtdb.europe-west1.firebasedatabase.app/
+  // sendToServer(); // old pushingbox, not using now
+  sendToFirebase(); // sending data to firebase db
 
-  delay(5000); // avoid spamming server
+  delay(5000); // not too fast so server doesnt hate me
 }
 
 // =============================================================
-// FUNCTIONS
+// WIFI
 // =============================================================
-
-// -------- WIFI -----------------------------------------------
 void connectWiFi() {
   Serial.print("Connecting to WiFi: ");
   Serial.println(SECRET_SSID);
@@ -98,7 +88,9 @@ void connectWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-// -------- BUTTON ---------------------------------------------
+// =============================================================
+// BUTTON
+// =============================================================
 void handleButton() {
   int currentButtonState = digitalRead(BUTTON_PIN);
 
@@ -110,16 +102,24 @@ void handleButton() {
   lastButtonState = currentButtonState;
 }
 
-// -------- SENSOR READ ----------------------------------------
+// =============================================================
+// SENSOR READ
+// =============================================================
 void readSensors() {
   soundValue = analogRead(SOUND_PIN);
   lightValue = analogRead(LIGHT_PIN);
+
+  // temp sometimes was crazy like 200C lol, fixing that
   temperature = readTemperature();
 }
 
-// -------- TEMPERATURE FIX (GROVE) -----------------------------
+// =============================================================
+// TEMPERATURE (FIXED)
+// =============================================================
 float readTemperature() {
   int tempRaw = analogRead(TEMP_PIN);
+
+  if (tempRaw == 0) return 0; // avoid crash (happened once)
 
   float resistance = (1023.0 / tempRaw - 1.0) * 10000.0;
   float tempC = 1.0 / (log(resistance / 10000.0) / 3975.0 + 1 / 298.15) - 273.15;
@@ -127,13 +127,17 @@ float readTemperature() {
   return tempC;
 }
 
-// -------- LIGHT CHANGE ----------------------------------------
+// =============================================================
+// LIGHT CHANGE DETECTION
+// =============================================================
 void detectRapidLight() {
+
   int diff = abs(lightValue - previousLightValue);
 
   if (diff > LIGHT_CHANGE_THRESHOLD) {
+
     if (rapidChangeStartTime == 0) {
-      rapidChangeStartTime = millis();
+      rapidChangeStartTime = millis(); // start timer
     }
 
     if (millis() - rapidChangeStartTime <= RAPID_WINDOW) {
@@ -148,7 +152,9 @@ void detectRapidLight() {
   previousLightValue = lightValue;
 }
 
-// -------- FOCUS SCORE -----------------------------------------
+// =============================================================
+// FOCUS SCORE
+// =============================================================
 void calculateFocus() {
 
   focusScore = 100;
@@ -158,14 +164,14 @@ void calculateFocus() {
   if (lightValue < LIGHT_LOW || lightValue > LIGHT_HIGH || rapidLightDetected)
     focusScore -= 25;
 
-  // if (motionValue == HIGH) focusScore -= 25; // PIR disabled
-
   if (temperature > TEMP_HIGH) focusScore -= 25;
 
   if (focusScore < 0) focusScore = 0;
 }
 
-// -------- DISPLAY ---------------------------------------------
+// =============================================================
+// DISPLAY
+// =============================================================
 void displayOLED() {
 
   oled.clearBuffer();
@@ -185,7 +191,7 @@ void displayOLED() {
 
     case 1:
       oled.drawStr(0,15,"Motion:");
-      oled.drawStr(0,35,"Disabled");
+      oled.drawStr(0,35,"Disabled"); // pir not working :(
       break;
 
     case 2:
@@ -195,14 +201,14 @@ void displayOLED() {
       break;
 
     case 3:
-      oled.drawStr(0,15,"Temperature:");
+      oled.drawStr(0,15,"Temp:");
       oled.setCursor(0,35);
       oled.print(temperature);
       oled.print(" C");
       break;
 
     case 4:
-      oled.drawStr(0,15,"Focus Score:");
+      oled.drawStr(0,15,"Focus:");
       oled.setCursor(0,35);
       oled.print(focusScore);
       break;
@@ -211,20 +217,23 @@ void displayOLED() {
   oled.sendBuffer();
 }
 
-// -------- SEND DATA -------------------------------------------
+// =============================================================
+// FIREBASE SEND
+// =============================================================
 void sendToFirebase() {
 
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
   }
 
-  String firebaseHost = "https://asec-iot-default-rtdb.europe-west1.firebasedatabase.app/";
+  // fixed host (no https!!)
+  String firebaseHost = "asec-iot-default-rtdb.europe-west1.firebasedatabase.app";
 
   WiFiClient client;
 
   if (client.connect(firebaseHost.c_str(), 80)) {
 
-    String url = "/asec.json?auth="; // leave empty if test mode
+    String url = "/asec.json";
 
     String jsonData = "{";
     jsonData += "\"temperature\":" + String(temperature) + ",";
@@ -233,7 +242,6 @@ void sendToFirebase() {
     jsonData += "\"focus\":" + String(focusScore);
     jsonData += "}";
 
-    // HTTP PUT request
     client.println("PUT " + url + " HTTP/1.1");
     client.println("Host: " + firebaseHost);
     client.println("Content-Type: application/json");
@@ -242,11 +250,11 @@ void sendToFirebase() {
     client.println();
     client.println(jsonData);
 
-    Serial.println("Sent to Firebase:");
+    Serial.println("sent to firebase:");
     Serial.println(jsonData);
-  } 
-  else {
-    Serial.println("Connection to Firebase failed");
+
+  } else {
+    Serial.println("firebase connection failed...");
   }
 
   client.stop();
