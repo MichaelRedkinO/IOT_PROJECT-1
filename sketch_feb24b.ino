@@ -210,24 +210,42 @@ void displayOLED() {
 }
 
 // -------- SEND DATA -------------------------------------------
-void sendToServer() {
+void sendToFirebase() {
 
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
   }
 
-  String path = "/pushingbox?devid=" + String(devid)
-              + "&temp=" + String(temperature)
-              + "&sound=" + String(soundValue)
-              + "&light=" + String(lightValue)
-              + "&focus=" + String(focusScore);
+  String firebaseHost = "your-project-id-default-rtdb.firebaseio.com";
 
-  Serial.println("Sending data:");
-  Serial.println(path);
+  WiFiClient client;
 
-  client.get(path);
+  if (client.connect(firebaseHost.c_str(), 80)) {
 
-  int statusCode = client.responseStatusCode();
-  Serial.print("Status: ");
-  Serial.println(statusCode);
+    String url = "/asec.json?auth="; // leave empty if test mode
+
+    String jsonData = "{";
+    jsonData += "\"temperature\":" + String(temperature) + ",";
+    jsonData += "\"light\":" + String(lightValue) + ",";
+    jsonData += "\"sound\":" + String(soundValue) + ",";
+    jsonData += "\"focus\":" + String(focusScore);
+    jsonData += "}";
+
+    // HTTP PUT request
+    client.println("PUT " + url + " HTTP/1.1");
+    client.println("Host: " + firebaseHost);
+    client.println("Content-Type: application/json");
+    client.print("Content-Length: ");
+    client.println(jsonData.length());
+    client.println();
+    client.println(jsonData);
+
+    Serial.println("Sent to Firebase:");
+    Serial.println(jsonData);
+  } 
+  else {
+    Serial.println("Connection to Firebase failed");
+  }
+
+  client.stop();
 }
