@@ -5,17 +5,17 @@
 #include "arduino_secrets.h"
 
 // -------- OLED SETUP ------------------------------------------
-// i think this is correct for my screen, didnt change it
+// i think this is correct for my screen
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
 // -------- PIN CONFIGURATION -----------------------------------
 const int SOUND_PIN  = A0;
 const int LIGHT_PIN  = A1;
-// const int PIR_PIN = 2;  // PIR disabled for now (sensor broken i think)
+// const int PIR_PIN = 2;  // PIR disabled for now (sensor broken , could not order a new one)
 const int TEMP_PIN   = A2;
 const int BUTTON_PIN = 3;
 
-// -------- BUTTON VARIABLES ------------------------------------
+// -------- BUTTON VARIABLES ---------------------------------
 bool lastButtonState = HIGH;
 int displayMode = 0;
 const int TOTAL_MODES = 5;
@@ -26,7 +26,7 @@ int lightValue = 0;
 float temperature = 0.0;
 int focusScore = 100;
 
-// -------- LIGHT RAPID CHANGE ----------------------------------
+// -------- LIGHT RAPID CHANGE    ----------------------------------
 int previousLightValue = 0;
 unsigned long rapidChangeStartTime = 0;
 bool rapidLightDetected = false;
@@ -34,7 +34,7 @@ bool rapidLightDetected = false;
 const int LIGHT_CHANGE_THRESHOLD = 150;
 const unsigned long RAPID_WINDOW = 5000;
 
-// -------- THRESHOLDS ------------------------------------------
+// -------- THRESHOLDS  ------------------------------------------
 const int SOUND_THRESHOLD = 600;
 const int LIGHT_LOW = 200;
 const int LIGHT_HIGH = 800;
@@ -49,7 +49,7 @@ void setup() {
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  connectWiFi(); // hope wifi connects fast lol
+  connectWiFi(); //  wifi connecting
 }
 
 // =============================================================
